@@ -1,0 +1,12 @@
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/Main.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/SokobanApp.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/Direction.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/EtatPartie.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/JeuSokoban.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/ResultatMouvement.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/SokobanException.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/model/TypeCase.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/util/LoaderNiveauxXSB.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/util/NiveauxSokoban.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/util/NiveauxTutoriel.java
+/Users/erhan/Desktop/IHM/Projet/sokobanfx_debut/src/main/java/ihm/sokoban/view/SokobanAppController.java
