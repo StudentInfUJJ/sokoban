@@ -30,31 +30,12 @@ import javafx.stage.Stage;
  */
 public class SokobanApp extends Application {
 
-    private MediaPlayer mediaPlayer;
-
     private final KeyCombination ctrlz = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
     private BorderPane rootPane;
     private Stage primaryStage;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-
-        try {
-            // Chemin vers ton fichier de musique de fond
-            URL resource = getClass().getResource("/ihm/sokoban/audio/background.mp3");
-
-            if (resource != null) {
-                Media media = new Media(resource.toExternalForm());
-                mediaPlayer = new MediaPlayer(media);
-                mediaPlayer.setVolume(0.4);
-                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                mediaPlayer.play();
-            } else {
-                Alert alert;
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Impossible de lire la musique : " + e.getMessage());
-        }
 
         this.primaryStage = primaryStage;
         this.rootPane = new BorderPane();
@@ -80,6 +61,7 @@ public class SokobanApp extends Application {
             SokobanAppController ctrl = loader.getController();
 
             ctrl.setFenetrePrincipale(primaryStage);
+            ctrl.mainMusicStart();
             ctrl.setMenu();
 
             // ICi on gére la capture des touches

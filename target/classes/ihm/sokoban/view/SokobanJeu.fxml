@@ -130,13 +130,13 @@
                               <MenuItem mnemonicParsing="false" onAction="#actionNivPrecedent" text="&lt;- Précédent" />
                         </items>
                       </Menu>
+                        <Menu fx:id="choixNiveaux" mnemonicParsing="false" text="Niveaux" />
                       <Menu mnemonicParsing="false" text="?">
                         <items>
                           <MenuItem mnemonicParsing="false" onAction="#actionAPropos" text="About" />
                               <MenuItem mnemonicParsing="false" onAction="#actionAide" text="Aide" />
                         </items>
                       </Menu>
-                        <Menu fx:id="choixNiveaux" mnemonicParsing="false" text="Niveaux" />
                     </menus>
                   </MenuBar>
                </children>

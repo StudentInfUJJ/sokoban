@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
+import ihm.sokoban.EffetSFX;
 import ihm.sokoban.model.Direction;
 import ihm.sokoban.model.JeuSokoban;
 import ihm.sokoban.model.ResultatMouvement;
@@ -33,6 +34,9 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
+import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
@@ -85,6 +89,8 @@ public class SokobanAppController implements Initializable {
     private IntegerProperty nbMouvements;
     private IntegerProperty nbPoussees;
     private String[] nomsNiveaux = NiveauxTutoriel.getNoms();
+    private MediaPlayer mediaMainMusic;
+    private AudioClip effet;
     // === Sprites et Images ===
     // Joueur
     private ImageView imagJoueur = new ImageView(
@@ -134,6 +140,7 @@ public class SokobanAppController implements Initializable {
             actionQuitter();
             event.consume();
         });
+
     }
 
     @FXML
@@ -314,7 +321,7 @@ public class SokobanAppController implements Initializable {
         nivSuivant = null;
         recommencerTotal = null;
         Optional<ButtonType> reponse = null;
-        if (jeu.estDernierNiveau() && !autoProgression) {
+        if (jeu.estDernierNiveau() && !autoProgression) { // Dernier niveau sans autoProgression
             finNiv.setTitle("Dernier niveau terminé...");
             finNiv.setHeaderText("Félicitations vous venez de terminer le dernier niveau !!!");
             finNiv.initOwner(this.fenetrePrincipale);
@@ -322,28 +329,35 @@ public class SokobanAppController implements Initializable {
             wow = new ButtonType("Trop fort");
             recommencerTotal = new ButtonType("Aller à niveau 0");
 
+            mainMusicStop();
+            joueSFX(EffetSFX.VICTOIRE_FIN);
             finNiv.getButtonTypes().setAll(wow, recommencerTotal, ButtonType.NO);
 
-        } else if (jeu.estDernierNiveau() && autoProgression) {
+            reponse = finNiv.showAndWait();
+            effet.stop();
+
+        } else if (jeu.estDernierNiveau() && autoProgression) { // dernier niveau avec autoProgression
             jeu.chargerNiveauParIndex(0);
+            mediaMainMusic.stop();
+            mediaMainMusic.play();
             mettreAJourAffichage();
         }
 
-        else if (!jeu.estDernierNiveau() && !autoProgression) {
+        else if (!jeu.estDernierNiveau() && !autoProgression) { // Pas dernier niveau sans autoProgression (normal)
             finNiv.setTitle("Niveau terminé...");
             finNiv.setHeaderText("Niveau terminé !\nPasser au prochain niveau ?");
             finNiv.initOwner(this.fenetrePrincipale);
             finNiv.initModality(Modality.WINDOW_MODAL);
             nivSuivant = new ButtonType("Niveau suivant");
 
+            joueSFX(EffetSFX.VICTOIRE);
             finNiv.getButtonTypes().setAll(nivSuivant, ButtonType.NO);
+
+            reponse = finNiv.showAndWait();
+            effet.stop();
 
         } else if (!jeu.estDernierNiveau() && autoProgression) {
             actionNivSuivant();
-        }
-
-        if (!autoProgression) {
-            reponse = finNiv.showAndWait();
         }
 
         if (reponse != null && reponse.orElse(null) == nivSuivant) {
@@ -351,7 +365,10 @@ public class SokobanAppController implements Initializable {
         }
 
         if (reponse != null && reponse.orElse(null) == recommencerTotal) {
-            actionRecommencer();
+            this.effet.stop();
+            this.jeu.chargerNiveauParIndex(0);
+            mettreAJourAffichage();
+            mediaMainMusic.play();
         }
 
     }
@@ -368,6 +385,7 @@ public class SokobanAppController implements Initializable {
 
         loseNiv.getButtonTypes().setAll(recommencer, annuler);
 
+        joueSFX(EffetSFX.DEFAITE);
         Optional<ButtonType> reponse = loseNiv.showAndWait();
 
         if (reponse.orElse(null) == recommencer) {
@@ -383,12 +401,15 @@ public class SokobanAppController implements Initializable {
             switch (r) {
                 case DEPLACE:
                     majJoueur(direction, r);
+                    joueSFX(EffetSFX.MOVE);
                     break;// cas normal
                 case POUSSE:
                     majJoueur(direction, r);
+                    joueSFX(EffetSFX.SLIDE);
                     break; // Cas pousser
                 case BLOQUE:
                     majJoueur(direction, r);
+                    joueSFX(EffetSFX.BLOQUE);
                     break; // Mouvement impossible
                 case NIVEAU_TERMINE:
                     break;
@@ -404,6 +425,13 @@ public class SokobanAppController implements Initializable {
         if (!this.jeu.estDernierNiveau()) {
             try {
                 this.jeu.niveauSuivant();
+                imagJoueur = new ImageView(
+                        new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBas.png"))); // Sinon le
+                                                                                                         // joueur reste
+                                                                                                         // dans la
+                                                                                                         // position du
+                                                                                                         // jeu
+                                                                                                         // précedent
                 mettreAJourAffichage();
             } catch (SokobanException SE) {
                 Alert erreur = new Alert(AlertType.ERROR);
@@ -437,6 +465,8 @@ public class SokobanAppController implements Initializable {
     @FXML
     public void actionRecommencer() {
         this.jeu.reset();
+        mainMusicStop();
+        mainMusicStart();
         mettreAJourAffichage();
     }
 
@@ -594,5 +624,48 @@ public class SokobanAppController implements Initializable {
             });
             this.choixNiveaux.getItems().add(tempItem);
         }
+    }
+
+    private void joueSFX(EffetSFX nomFichier) {
+        try {
+            URL resource = getClass().getResource("/ihm/sokoban/audio/" + nomFichier);
+            if (resource != null) {
+                effet = new AudioClip(resource.toExternalForm());
+                effet.setBalance(0.8);
+                effet.play();
+
+            }
+        } catch (Exception E) {
+            Alert alert;
+        }
+
+    }
+
+    /**
+     * Fait commencer la musique principale
+     */
+    public void mainMusicStart() {
+        try {
+            URL resource = getClass().getResource("/ihm/sokoban/audio/MusiqueGenIA.mp3");
+
+            if (resource != null) {
+                Media media = new Media(resource.toExternalForm());
+                mediaMainMusic = new MediaPlayer(media);
+                mediaMainMusic.setVolume(0.4);
+                mediaMainMusic.setCycleCount(MediaPlayer.INDEFINITE);
+                mediaMainMusic.play();
+            } else {
+                Alert alert;
+            }
+        } catch (Exception e) {
+            Alert alert;
+        }
+    }
+
+    /**
+     * Arrête la musique principale
+     */
+    public void mainMusicStop() {
+        mediaMainMusic.stop();
     }
 }
