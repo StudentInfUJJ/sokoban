@@ -1,2 +1,17 @@
+ihm/sokoban/model/TypeCase.class
 ihm/sokoban/SokobanApp$1.class
+ihm/sokoban/model/ResultatMouvement.class
+ihm/sokoban/util/NiveauxTutoriel.class
+ihm/sokoban/util/NiveauxSokoban.class
+ihm/sokoban/EffetSFX.class
+ihm/sokoban/util/LoaderNiveauxXSB$Banque.class
+ihm/sokoban/model/EtatPartie.class
+ihm/sokoban/model/SokobanException.class
+ihm/sokoban/model/SokobanException$TypeErreur.class
+ihm/sokoban/model/Direction.class
+ihm/sokoban/model/JeuSokoban.class
+ihm/sokoban/Main.class
+ihm/sokoban/util/LoaderNiveauxXSB.class
 ihm/sokoban/view/SokobanAppController$1.class
+ihm/sokoban/SokobanApp.class
+ihm/sokoban/view/SokobanAppController.class

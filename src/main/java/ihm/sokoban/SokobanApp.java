@@ -1,23 +1,13 @@
 package ihm.sokoban;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.Scanner;
 
-import javafx.scene.media.Media; //   BON IMPORT
-import javafx.scene.media.MediaPlayer; //   BON IMPORT
 import ihm.sokoban.model.Direction;
-import ihm.sokoban.model.JeuSokoban;
-import ihm.sokoban.model.ResultatMouvement;
 import ihm.sokoban.model.SokobanException;
-import ihm.sokoban.model.TypeCase;
-import ihm.sokoban.util.*;
 import ihm.sokoban.view.SokobanAppController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -64,7 +54,8 @@ public class SokobanApp extends Application {
             ctrl.mainMusicStart();
             ctrl.setMenu();
 
-            // ICi on gére la capture des touches
+            // ICi on gére la capture des touches (combinaison (ctrl+Z) et normaux)
+
             scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
                 if (ctrlz.match(event)) {
                     try {
