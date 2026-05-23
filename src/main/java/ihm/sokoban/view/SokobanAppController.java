@@ -3,11 +3,15 @@ package ihm.sokoban.view;
 import java.net.URL;
 import java.nio.file.Path;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
 import ihm.sokoban.EffetSFX;
+import ihm.sokoban.Score;
 import ihm.sokoban.model.Direction;
 import ihm.sokoban.model.JeuSokoban;
 import ihm.sokoban.model.ResultatMouvement;
@@ -43,7 +47,8 @@ public class SokobanAppController implements Initializable {
     private Stage fenetrePrincipale;
     // Initialisation du jeu (par défaut commence par Tutoriel)
     public static JeuSokoban jeu = new JeuSokoban(NiveauxTutoriel.getNiveaux(), NiveauxTutoriel.getNoms(), 0);
-
+    // Liste de scores \\
+    private ArrayList<Score> scores = new ArrayList<Score>();
     // === Composants FXML (Interface Graphique) ===
     @FXML
     private GridPane zoneJeu;
@@ -81,6 +86,7 @@ public class SokobanAppController implements Initializable {
     private IntegerProperty nbPoussees;
     private String[] nomsNiveaux = NiveauxTutoriel.getNoms();
     private MediaPlayer mediaMainMusic;
+
     // === Sprites et Images ===
     // Joueur
     private ImageView imagJoueur = new ImageView(
@@ -123,21 +129,80 @@ public class SokobanAppController implements Initializable {
 
     // Direction joueur
 
-    Direction directionJoueur;
+    Direction directionJoueur = Direction.BAS;
+
+    // ==========================================
+    // Initialisation et Configuration
+    // ==========================================
+
+    /**
+     * Initialise le contrôleur lors du chargement du fichier FXML (prépare les
+     * sprites).
+     */
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        setSprites();
+    }
 
     /**
      * Fait le lien avec la fenêtre de l'application
      * 
-     * @param fenetrePrincipale
+     * @param fenetrePrincipale la fenêtre principale de l'application
      */
-
     public void setFenetrePrincipale(Stage fenetrePrincipale) {
         this.fenetrePrincipale = fenetrePrincipale;
         this.fenetrePrincipale.setOnCloseRequest(event -> {
             actionQuitter();
             event.consume();
         });
+    }
 
+    /**
+     * Initialise toutes les images de tous les mouvements dans des HashMap (clé =
+     * mouvement, valeur = image)
+     */
+    public void setSprites() {
+        this.deplacement.put(Direction.BAS,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBas.png")));
+        this.deplacement.put(Direction.HAUT,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurHaut.png")));
+        this.deplacement.put(Direction.GAUCHE,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurGauche.png")));
+        this.deplacement.put(Direction.DROITE,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurDroite.png")));
+        this.poussee.put(Direction.BAS,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBasPousse.png")));
+        this.poussee.put(Direction.HAUT,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurHautPousse.png")));
+        this.poussee.put(Direction.GAUCHE,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurGauchePousse.png")));
+        this.poussee.put(Direction.DROITE,
+                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurDroitePousse.png")));
+    }
+
+    /**
+     * Met à jour les niveaux du menu déroulant
+     */
+    public void setMenu() {
+        for (int i = 0; i < this.nomsNiveaux.length; i++) {
+            final int indexNiveau = i; // On stocke l'index qui correspond au niveau du jeu
+            MenuItem tempItem = new MenuItem("Niveau " + i + " : " + this.nomsNiveaux[i]);
+            tempItem.setOnAction(event -> {
+                try {
+                    jeu.chargerNiveauParIndex(indexNiveau);
+                    mettreAJourAffichage();
+                } catch (SokobanException SE) {
+                    Alert erreur = new Alert(AlertType.ERROR);
+                    erreur.setTitle("Erreur de chargement");
+                    erreur.setHeaderText("Impossible de charger les niveaux");
+                    erreur.setContentText(SE.getMessage());
+                    erreur.initOwner(fenetrePrincipale);
+                    erreur.showAndWait();
+                }
+            });
+            this.choixNiveaux.getItems().add(tempItem); // On ajoute les niveaux dans le menu déroulant qui contiennent
+                                                        // chacun un listener
+        }
     }
 
     /**
@@ -150,7 +215,6 @@ public class SokobanAppController implements Initializable {
         this.choixNiveaux.getItems().clear();
         setMenu();
         setSprites();
-
         mettreAJourAffichage();
     }
 
@@ -168,30 +232,108 @@ public class SokobanAppController implements Initializable {
         mettreAJourAffichage();
     }
 
+    // ==========================================
+    // Logique de Jeu et Mouvements
+    // ==========================================
+
     /**
-     * Initialise toutes les images de tous les mouvements dans des HashMap (clé =
-     * mouvement, valeur = image)
+     * En fonction de la saisie clavier on déduit la direction et en fonction
+     * de cette dernière on deplace le joueur et obtient le résultat du mouvement
+     * 
+     * @param direction la direction demandée
      */
-    public void setSprites() {
-
-        this.deplacement.put(Direction.BAS,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBas.png")));
-        this.deplacement.put(Direction.HAUT,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurHaut.png")));
-        this.deplacement.put(Direction.GAUCHE,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurGauche.png")));
-        this.deplacement.put(Direction.DROITE,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurDroite.png")));
-        this.poussee.put(Direction.BAS,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBasPousse.png")));
-        this.poussee.put(Direction.HAUT,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurHautPousse.png")));
-        this.poussee.put(Direction.GAUCHE,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurGauchePousse.png")));
-        this.poussee.put(Direction.DROITE,
-                new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurDroitePousse.png")));
-
+    public void executerDeplacement(Direction direction) {
+        if (jeu.peutJouer()) {
+            int caisseAvant = jeu.getNbCaissesSurCible();
+            ResultatMouvement r = jeu.deplacer(direction); // actionne le mouvement
+            directionJoueur = direction;
+            int caisseApres = jeu.getNbCaissesSurCible();
+            switch (r) {
+                case DEPLACE:
+                    majJoueur(direction, r);
+                    break;// cas normal
+                case POUSSE:
+                    majJoueur(direction, r);
+                    if (!jeu.isNiveauTermine() && caisseApres > caisseAvant) { // Quand le nombre de caisse sur cible
+                                                                               // augmente on joue le son
+                                                                               // CaisseSurCibleSound.mp3
+                        joueSFX(EffetSFX.CAISSE_SUR_CIBLE);
+                    } else {
+                        joueSFX(EffetSFX.SLIDE);
+                    }
+                    break; // Cas pousser
+                case BLOQUE:
+                    majJoueur(direction, r);
+                    joueSFX(EffetSFX.BLOQUE);
+                    break; // Mouvement impossible
+                case NIVEAU_TERMINE:
+                    break;
+                default:
+                    break;
+            }
+            mettreAJourAffichage();
+        }
     }
+
+    /**
+     * Permet d'annuler une action
+     */
+    public void actionUndo() {
+        try {
+            jeu.annuler();
+            mettreAJourAffichage();
+        } catch (SokobanException SE) {
+            alertUndo();
+        }
+    }
+
+    /**
+     * Met la position par défaut du joueur à chaque fois que le niveau change
+     */
+    private void parDefautJoueur() {
+        this.imagJoueur = new ImageView(new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBas.png")));
+        this.directionJoueur = Direction.BAS;
+    }
+
+    /**
+     * Determine le statut du jeu et en fonction determine l'action à faire : aller
+     * au niveau 0(cas du dernier niveau ), aller au niveau suivant (cas normal) et
+     * recommencer (en cas d'échec)
+     */
+    private void statuJeu() {
+        if (jeu.isNiveauTermine() && !jeu.estDernierNiveau()) {
+            remplirScores();
+            if (!autoProgression)
+                joueSFX(EffetSFX.VICTOIRE);
+            finNivSimple();
+        } else if (jeu.isNiveauTermine() && jeu.estDernierNiveau()) {
+            remplirScores();
+            if (!autoProgression)
+                joueSFX(EffetSFX.VICTOIRE_FIN);
+            finNivDernier();
+        } else if (jeu.isPerdu()) {
+            if (this.scores.size() > 0) {
+                this.scores.set(this.scores.size() - 1,
+                        new Score(
+                                ((jeu.getNiveauCourant() + 1) + " : " + jeu.getNomNiveauCourant()
+                                        + "      ==Game OVER=="),
+                                jeu.getNbMouvements(),
+                                jeu.getNbPoussees(), jeu.getNbCaissesSurCible(), jeu.getNbCaisses()));
+            } else {
+                this.scores.add(
+                        new Score(((jeu.getNiveauCourant() + 1) + " : " + jeu.getNomNiveauCourant() + " : Game OVER"),
+                                jeu.getNbMouvements(),
+                                jeu.getNbPoussees(), jeu.getNbCaissesSurCible(), jeu.getNbCaisses()));
+            }
+
+            joueSFX(EffetSFX.DEFAITE);
+            loseNiv();
+        }
+    }
+
+    // ==========================================
+    // Affichage et Interface Graphique
+    // ==========================================
 
     /**
      * Cette fonction s'occupe de l'affichage du jeu. Utilisé à chaque fois qu'il
@@ -296,45 +438,29 @@ public class SokobanAppController implements Initializable {
                         this.zoneJeu.add(tempVide, j, i);
                         break;
                 }
-
             }
         }
         statuJeu();
     }
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        setSprites();
-    }
-
     /**
-     * Met la position par défaut du joueur à chaque fois que le niveau change
-     */
-    private void parDefautJoueur() {
-        this.imagJoueur = new ImageView(new Image(getClass().getResourceAsStream("/ihm/sokoban/images/JoueurBas.png")));
-    }
-
-    /**
-     * Determine le statut du jeu et en fonction determine l'action à faire : aller
-     * au niveau 0(cas du dernier niveau ), aller au niveau suivant (cas normal) et
-     * recommencer (en cas d'échec)
+     * En fonction de la direction et du résultat du mouvement on change le sprite
+     * du joueur
      * 
+     * @param direction la direction du joueur
+     * @param resMouv   le résultat du mouvement
      */
-    private void statuJeu() {
-        if (jeu.isNiveauTermine() && !jeu.estDernierNiveau()) {
-            joueSFX(EffetSFX.VICTOIRE);
-            finNivSimple();
+    private void majJoueur(Direction direction, ResultatMouvement resMouv) {
+        Image nouvelleImage = null;
 
-        } else if (jeu.isNiveauTermine() && jeu.estDernierNiveau()) {
-            joueSFX(EffetSFX.VICTOIRE_FIN);
-            finNivDernier();
-
-        } else if (jeu.isPerdu()) {
-            joueSFX(EffetSFX.DEFAITE);
-            loseNiv();
-
+        if (resMouv == ResultatMouvement.DEPLACE) {
+            nouvelleImage = deplacement.get(direction);
+        } else if (resMouv == ResultatMouvement.POUSSE || resMouv == ResultatMouvement.BLOQUE) {
+            nouvelleImage = poussee.get(direction);
         }
-
+        if (nouvelleImage != null) {
+            imagJoueur.setImage(nouvelleImage);
+        }
     }
 
     /**
@@ -352,161 +478,12 @@ public class SokobanAppController implements Initializable {
         this.blocsOk.setText(String.valueOf(jeu.getNbCaissesSurCible()) + " / " + jeu.getNbCaisses());
     }
 
-    /**
-     * Actionné quand le niveau est le dernier du jeu
-     * Affiche un pop up demandant l'affirmation de quitter ou de continuer
-     */
-    private void finNivDernier() {
-        Alert finNivDernier = new Alert(AlertType.CONFIRMATION);
-        ButtonType recommencer, recommencerTotal;
-        recommencer = null;
-        recommencerTotal = null;
-        Optional<ButtonType> reponse = null;
-        recommencer = new ButtonType("recommencer ce niveau");
-        recommencerTotal = new ButtonType("Aller à niveau 0");
-        finNivDernier.setTitle("Dernier niveau terminé...");
-        finNivDernier.setHeaderText("Félicitations vous venez de terminer le dernier niveau !!!");
-        finNivDernier.initOwner(this.fenetrePrincipale);
-        finNivDernier.initModality(Modality.WINDOW_MODAL);
-
-        if (!autoProgression) {
-
-            finNivDernier.getButtonTypes().setAll(recommencer, recommencerTotal);
-
-            mainMusicStop();
-
-            reponse = finNivDernier.showAndWait();
-
-            if (reponse.orElse(null) == recommencerTotal) {
-                stopSFX(EffetSFX.VICTOIRE_FIN);
-                mainMusicStop();
-                mainMusicStart();
-                jeu.chargerNiveauParIndex(0);
-                mettreAJourAffichage();
-            }
-
-            if (reponse.orElse(null) == recommencer) {
-                stopSFX(EffetSFX.VICTOIRE_FIN);
-                actionRecommencer();
-                mainMusicStop();
-                mainMusicStart();
-
-            }
-
-        } else {
-            jeu.chargerNiveauParIndex(0);
-            mettreAJourAffichage();
-            mediaMainMusic.stop();
-            mediaMainMusic.play();
-        }
-
-    }
+    // ==========================================
+    // Actions Utilisateur et Menus
+    // ==========================================
 
     /**
-     * Actionné quand le niveau n'est pas le dernier niveau
-     * Affiche un pop up qui demande si le joueur veut contineur à jouer ou
-     * recommencer le niveau
-     */
-    private void finNivSimple() {
-
-        // Pas dernier niveau sans autoProgression (normal)
-        Alert finNivSimple = new Alert(AlertType.CONFIRMATION);
-        ButtonType recommencer = new ButtonType("Recommencer");
-        ButtonType niveauSuivant = new ButtonType("Niveau suivant");
-        Optional<ButtonType> reponse = null;
-        finNivSimple.setTitle("Niveau terminé...");
-        finNivSimple.setHeaderText("Niveau terminé !\nPasser au prochain niveau ?");
-        finNivSimple.initOwner(this.fenetrePrincipale);
-        finNivSimple.initModality(Modality.WINDOW_MODAL);
-
-        finNivSimple.getButtonTypes().setAll(niveauSuivant, recommencer);
-
-        if (!autoProgression) {
-            finNivSimple.getButtonTypes().setAll(recommencer, niveauSuivant);
-
-            reponse = finNivSimple.showAndWait();
-
-            if (reponse.orElse(null) == niveauSuivant) {
-                actionNivSuivant();
-            }
-            if (reponse.orElse(null) == recommencer) {
-                actionRecommencer();
-            }
-        } else {
-            actionNivSuivant();
-        }
-
-    }
-
-    /**
-     * Actionné quand le joueur perd le niveau
-     * Affiche un pop up qui demande si le joueur veut recommencer le niveau
-     */
-    private void loseNiv() {
-        Alert loseNiv = new Alert(AlertType.INFORMATION);
-
-        loseNiv.setTitle("Game Over");
-        loseNiv.setHeaderText("GAME OVER");
-        loseNiv.initOwner(this.fenetrePrincipale);
-        loseNiv.initModality(Modality.WINDOW_MODAL);
-        ButtonType recommencer = new ButtonType("Recommencer");
-        ButtonType annuler = new ButtonType("Annuler");
-
-        loseNiv.getButtonTypes().setAll(recommencer, annuler);
-
-        mainMusicStop();
-        Optional<ButtonType> reponse = loseNiv.showAndWait();
-        mainMusicStart();
-
-        if (reponse.orElse(null) == recommencer) {
-            actionRecommencer();
-        }
-
-    }
-
-    /**
-     * En fonction de la saisie clavier on déduit la direction et en fonction
-     * de cette dernière on deplace le joueur et obtient le résultat du mouvement
-     * 
-     * @param direction
-     */
-    public void executerDeplacement(Direction direction) {
-        if (jeu.peutJouer()) {
-            int caisseAvant = jeu.getNbCaissesSurCible();
-            ResultatMouvement r = jeu.deplacer(direction); // actionne le mouvement
-            directionJoueur = direction;
-            int caisseApres = jeu.getNbCaissesSurCible();
-            switch (r) {
-                case DEPLACE:
-                    majJoueur(direction, r);
-                    break;// cas normal
-                case POUSSE:
-                    majJoueur(direction, r);
-                    if (!jeu.isNiveauTermine() && caisseApres > caisseAvant) { // Quand le nombre de caisse sur cible
-                                                                               // augmente on joue le son
-                                                                               // CaisseSurCibleSound.mp3
-                        joueSFX(EffetSFX.CAISSE_SUR_CIBLE);
-                    } else {
-                        joueSFX(EffetSFX.SLIDE);
-                    }
-                    break; // Cas pousser
-                case BLOQUE:
-                    majJoueur(direction, r);
-                    joueSFX(EffetSFX.BLOQUE);
-                    break; // Mouvement impossible
-                case NIVEAU_TERMINE:
-                    break;
-                default:
-                    break;
-            }
-            mettreAJourAffichage();
-        }
-    }
-
-    /**
-     * Affiche un pop up qui propose de passer au niveau suivant si celui ci n'est
-     * pas le dernier
-     * 
+     * Passe au niveau suivant si celui-ci n'est pas le dernier
      */
     @FXML
     public void actionNivSuivant() {
@@ -528,8 +505,7 @@ public class SokobanAppController implements Initializable {
     }
 
     /**
-     * Affiche un pop up qui propose de passer au niveau précedent si celui ci n'est
-     * pas le premier
+     * Passe au niveau précédent si celui-ci n'est pas le premier
      */
     @FXML
     public void actionNivPrecedent() {
@@ -554,66 +530,12 @@ public class SokobanAppController implements Initializable {
      */
     @FXML
     public void actionRecommencer() {
+        remplirScores();
         jeu.reset();
         mainMusicStop();
         mainMusicStart();
         parDefautJoueur();
         mettreAJourAffichage();
-    }
-
-    /**
-     * Affiche un pop up qui demande confirmation avant de fermer
-     */
-    @FXML
-    public void actionQuitter() {
-
-        Alert close = new Alert(AlertType.WARNING);
-        close.setTitle("Fermeture...");
-        close.setHeaderText("Voulez vous fermer ? ");
-        close.initOwner(fenetrePrincipale);
-        close.initModality(Modality.WINDOW_MODAL);
-
-        ButtonType plustard = new ButtonType("Plus tard...");
-        close.getButtonTypes().setAll(plustard, ButtonType.YES, ButtonType.NO);
-
-        Optional<ButtonType> reponse = close.showAndWait();
-
-        if (reponse.orElse(null) == ButtonType.YES) {
-            this.fenetrePrincipale.close();
-        }
-    }
-
-    /**
-     * En fonction de la direction et du résultat du mouvement on change le sprite
-     * du joueur
-     * 
-     * @param direction
-     * @param resMouv
-     */
-    private void majJoueur(Direction direction, ResultatMouvement resMouv) {
-        Image nouvelleImage = null;
-
-        if (resMouv == ResultatMouvement.DEPLACE) {
-            nouvelleImage = deplacement.get(direction);
-        } else if (resMouv == ResultatMouvement.POUSSE || resMouv == ResultatMouvement.BLOQUE) {
-            nouvelleImage = poussee.get(direction);
-        }
-        if (nouvelleImage != null) {
-            imagJoueur.setImage(nouvelleImage);
-        }
-    }
-
-    /**
-     * Permet d'annuler une action
-     */
-    public void actionUndo() {
-        try {
-            jeu.annuler();
-            mettreAJourAffichage();
-        } catch (SokobanException SE) {
-            alertUndo();
-        }
-
     }
 
     /**
@@ -651,26 +573,57 @@ public class SokobanAppController implements Initializable {
                 erreur.initOwner(fenetrePrincipale);
                 erreur.showAndWait();
             }
-
         }
     }
 
     /**
-     * Actionné par actionUndo qui affiche un pop up qui indique qu'il ne reste plus
-     * aucun mouvement à annuler
-     * 
+     * Affiche un pop up qui demande confirmation avant de fermer
      */
-    public void alertUndo() {
-        Alert undo = new Alert(AlertType.WARNING);
-        undo.setTitle("Plus rien à annuler...");
-        undo.setHeaderText("Plus rien à annuler");
-        undo.initOwner(fenetrePrincipale);
-        undo.initModality(Modality.WINDOW_MODAL);
+    @FXML
+    public void actionQuitter() {
+        if (this.scores.size() > 0) {
+            this.scores.set(this.scores.size() - 1,
+                    new Score(
+                            ((jeu.getNiveauCourant() + 1) + " : " + jeu.getNomNiveauCourant()
+                                    + " <- Vous avez quitté ici"),
+                            jeu.getNbMouvements(),
+                            jeu.getNbPoussees(), jeu.getNbCaissesSurCible(), jeu.getNbCaisses()));
+        } else {
+            this.scores.add(new Score(
+                    (jeu.getNiveauCourant() + 1) + " : " + jeu.getNomNiveauCourant() + "    ==Vous avez quitté ici==",
+                    0, 0,
+                    0,
+                    jeu.getNbCaisses()));
+        }
 
-        ButtonType ok = new ButtonType("je me calme et je respire");
-        undo.getButtonTypes().setAll(ok);
+        Alert close = new Alert(AlertType.WARNING);
+        close.setTitle("Fermeture...");
+        close.setHeaderText("Voulez vous fermer ? ");
+        close.initOwner(fenetrePrincipale);
+        close.initModality(Modality.WINDOW_MODAL);
 
-        undo.showAndWait();
+        ButtonType plustard = new ButtonType("Plus tard...");
+        close.getButtonTypes().setAll(plustard, ButtonType.YES, ButtonType.NO);
+
+        Optional<ButtonType> reponse = close.showAndWait();
+        sauvegardeScores();
+
+        if (reponse.orElse(null) == ButtonType.YES) {
+            this.fenetrePrincipale.close();
+        }
+    }
+
+    /**
+     * Bascule le mode auto progression et change le texte du label entre ON/OFF
+     */
+    @FXML
+    private void actionAutoProgOnOff() {
+        autoProgression = !autoProgression;
+        if (autoProgression) {
+            setAutoProgression.setText("Auto Progression (ON)");
+        } else {
+            setAutoProgression.setText("Auto Progression (OFF)");
+        }
     }
 
     /**
@@ -690,21 +643,136 @@ public class SokobanAppController implements Initializable {
         APropos.showAndWait();
     }
 
+    // ==========================================
+    // Fenêtres et Alertes
+    // ==========================================
+
     /**
-     * Bascule le mode auto progression et change le texte du label entre ON/OFF
+     * Actionné quand le niveau n'est pas le dernier niveau
+     * Affiche un pop up qui demande si le joueur veut continuer à jouer ou
+     * recommencer le niveau
      */
-    @FXML
-    private void actionAutoProgOnOff() {
-        autoProgression = !autoProgression;
-        if (autoProgression) {
-            setAutoProgression.setText("Auto Progression (ON)");
+    private void finNivSimple() {
+        // Pas dernier niveau sans autoProgression (normal)
+        Alert finNivSimple = new Alert(AlertType.CONFIRMATION);
+        ButtonType recommencer = new ButtonType("Recommencer");
+        ButtonType niveauSuivant = new ButtonType("Niveau suivant");
+        Optional<ButtonType> reponse = null;
+        finNivSimple.setTitle("Niveau terminé...");
+        finNivSimple.setHeaderText("Niveau terminé !\nPasser au prochain niveau ?");
+        finNivSimple.initOwner(this.fenetrePrincipale);
+        finNivSimple.initModality(Modality.WINDOW_MODAL);
+
+        finNivSimple.getButtonTypes().setAll(niveauSuivant, recommencer);
+
+        if (!autoProgression) {
+            finNivSimple.getButtonTypes().setAll(recommencer, niveauSuivant);
+
+            reponse = finNivSimple.showAndWait();
+
+            if (reponse.orElse(null) == niveauSuivant) {
+                actionNivSuivant();
+            }
+            if (reponse.orElse(null) == recommencer) {
+                actionRecommencer();
+            }
         } else {
-            setAutoProgression.setText("Auto Progression (OFF)");
+            actionNivSuivant();
         }
     }
 
     /**
-     * Affiche un pop up d'aide qui affiche au joueur une explicatino sur le jeu et
+     * Actionné quand le niveau est le dernier du jeu
+     * Affiche un pop up demandant l'affirmation de quitter ou de continuer
+     */
+    private void finNivDernier() {
+        Alert finNivDernier = new Alert(AlertType.CONFIRMATION);
+        ButtonType recommencer, recommencerTotal;
+        recommencer = null;
+        recommencerTotal = null;
+        Optional<ButtonType> reponse = null;
+        recommencer = new ButtonType("recommencer ce niveau");
+        recommencerTotal = new ButtonType("Aller à niveau 0");
+        finNivDernier.setTitle("Dernier niveau terminé...");
+        finNivDernier.setHeaderText("Félicitations vous venez de terminer le dernier niveau !!!");
+        finNivDernier.initOwner(this.fenetrePrincipale);
+        finNivDernier.initModality(Modality.WINDOW_MODAL);
+
+        if (!autoProgression) {
+            finNivDernier.getButtonTypes().setAll(recommencer, recommencerTotal);
+
+            mainMusicStop();
+
+            reponse = finNivDernier.showAndWait();
+
+            if (reponse.orElse(null) == recommencerTotal) {
+                stopSFX(EffetSFX.VICTOIRE_FIN);
+                mainMusicStop();
+                mainMusicStart();
+                jeu.chargerNiveauParIndex(0);
+                mettreAJourAffichage();
+            }
+
+            if (reponse.orElse(null) == recommencer) {
+                stopSFX(EffetSFX.VICTOIRE_FIN);
+                actionRecommencer();
+                mainMusicStop();
+                mainMusicStart();
+            }
+        } else {
+            jeu.chargerNiveauParIndex(0);
+            mettreAJourAffichage();
+            mediaMainMusic.stop();
+            mediaMainMusic.play();
+        }
+    }
+
+    /**
+     * Actionné quand le joueur perd le niveau
+     * Affiche un pop up qui demande si le joueur veut recommencer le niveau
+     */
+    private void loseNiv() {
+        Alert loseNiv = new Alert(AlertType.INFORMATION);
+
+        loseNiv.setTitle("Game Over");
+        loseNiv.setHeaderText("GAME OVER");
+        loseNiv.initOwner(this.fenetrePrincipale);
+        loseNiv.initModality(Modality.WINDOW_MODAL);
+        ButtonType recommencer = new ButtonType("Recommencer");
+        ButtonType annuler = new ButtonType("Retour en arriere");
+
+        loseNiv.getButtonTypes().setAll(recommencer, annuler);
+
+        mainMusicStop();
+        Optional<ButtonType> reponse = loseNiv.showAndWait();
+        mainMusicStart();
+
+        if (reponse.orElse(null) == recommencer) {
+            actionRecommencer();
+        } else if (reponse.orElse(null) == annuler) {
+            actionUndo();
+        }
+    }
+
+    /**
+     * Actionné par actionUndo qui affiche un pop up qui indique qu'il ne reste plus
+     * aucun mouvement à annuler
+     */
+    public void alertUndo() {
+        Alert undo = new Alert(AlertType.WARNING);
+        undo.setTitle("Plus rien à annuler...");
+        undo.setHeaderText("Plus rien à annuler");
+        undo.initOwner(fenetrePrincipale);
+        undo.initModality(Modality.WINDOW_MODAL);
+
+        ButtonType ok = new ButtonType("je me calme et je respire");
+        undo.getButtonTypes().setAll(ok);
+
+        undo.showAndWait();
+    }
+
+    /**
+     * Affiche un pop up d'aide qui affiche au joueur une explication sur le jeu et
      * les touches du jeu
      */
     @FXML
@@ -717,7 +785,8 @@ public class SokobanAppController implements Initializable {
                 +
                 "Commandes au clavier :\n" +
                 "• Flèches directionnelles ou Z, Q, S, D : Déplacer le joueur\n" +
-                "• Ctrl + Z : Annuler le dernier mouvement\n\n" +
+                "• Ctrl + Z : Annuler le dernier mouvement\n•A : Pour arrêter la musique\n• T : Pour faire commencer la musique\n• X : Pour fermer le jeu\n • N : pour niveau suivant et P : pour niveau précedent\n• R : pour recommencer le niveau\n• C : Pour Charger un niveau\n• U : pour revenir en arriere\n\n"
+                +
                 "L'Auto Progression (dans le menu) permet de passer automatiquement au niveau suivant une fois terminé (sans confirmation).");
         aide.initOwner(fenetrePrincipale);
         aide.initModality(Modality.WINDOW_MODAL);
@@ -728,40 +797,18 @@ public class SokobanAppController implements Initializable {
         aide.showAndWait();
     }
 
-    /**
-     * Met à jour les niveaux du menu déroulant
-     */
-    public void setMenu() {
-        for (int i = 0; i < this.nomsNiveaux.length; i++) {
-            final int indexNiveau = i; // On stocke l'index qui correspond au niveau du jeu
-            MenuItem tempItem = new MenuItem("Niveau " + i + " : " + this.nomsNiveaux[i]);
-            tempItem.setOnAction(event -> {
-                try {
-                    jeu.chargerNiveauParIndex(indexNiveau);
-                    mettreAJourAffichage();
-                } catch (SokobanException SE) {
-                    Alert erreur = new Alert(AlertType.ERROR);
-                    erreur.setTitle("Erreur de chargement");
-                    erreur.setHeaderText("Impossible de charger le niveaux");
-                    erreur.setContentText(SE.getMessage());
-                    erreur.initOwner(fenetrePrincipale);
-                    erreur.showAndWait();
-                }
-            });
-            this.choixNiveaux.getItems().add(tempItem); // On ajoute les niveaux dans le menu déroulant qui contiennent
-                                                        // chacun un listener
-        }
-    }
+    // ==========================================
+    // Audio et Musique
+    // ==========================================
 
     /**
      * Fait commencer l'effet souhaité, aidé par l'IA pour l'optimisation
      * 
-     * @param effet
+     * @param effet l'effet sonore à jouer
      */
     public void joueSFX(EffetSFX effet) {
         try {
             effet.play();
-
         } catch (Exception SFX) {
             Alert erreurSFX = new Alert(AlertType.WARNING);
             erreurSFX.setTitle("Erreur SFX...");
@@ -774,11 +821,12 @@ public class SokobanAppController implements Initializable {
 
             erreurSFX.showAndWait();
         }
-
     }
 
     /**
      * Arrête l'effet souhaité
+     * 
+     * @param effet l'effet sonore à arrêter
      */
     public void stopSFX(EffetSFX effet) {
         try {
@@ -842,5 +890,60 @@ public class SokobanAppController implements Initializable {
      */
     public void mainMusicStop() {
         mediaMainMusic.stop();
+    }
+
+    // ==========================================
+    // Gestion des Scores
+    // ==========================================
+
+    /**
+     * Remplissage des scores
+     */
+    public void remplirScores() {
+        this.scores.add(
+                new Score(((jeu.getNiveauCourant() + 1) + " : " + jeu.getNomNiveauCourant()), jeu.getNbMouvements(),
+                        jeu.getNbPoussees(), jeu.getNbCaissesSurCible(), jeu.getNbCaisses()));
+    }
+
+    /**
+     * Sauvegarde les scores du jeu
+     */
+    public void sauvegardeScores() {
+        try {
+            java.io.BufferedWriter flux = new java.io.BufferedWriter(
+                    new java.io.OutputStreamWriter(
+                            new java.io.FileOutputStream("Scores.sav"),
+                            java.nio.charset.StandardCharsets.UTF_8));
+            // Solution trouvé après erreur d'encodage des caractères dans le fichier de
+            // sauvegarde
+            for (Score score : scores)
+                flux.write(score.toString() + "\n");
+            flux.close();
+            Alert savOk = new Alert(AlertType.INFORMATION);
+
+            savOk.setTitle("Enregistrement...");
+            savOk.setHeaderText("Score enregistré avec succès");
+            savOk.initOwner(this.fenetrePrincipale);
+            savOk.initModality(Modality.WINDOW_MODAL);
+            savOk.showAndWait();
+
+        } catch (FileNotFoundException e) {
+            Alert savNotOk = new Alert(AlertType.ERROR);
+
+            savNotOk.setTitle("Erreur de sauvegarde");
+            savNotOk.setHeaderText(e.getMessage());
+            savNotOk.initOwner(this.fenetrePrincipale);
+            savNotOk.initModality(Modality.WINDOW_MODAL);
+            savNotOk.showAndWait();
+
+        } catch (IOException e) {
+            Alert ecritureAlert = new Alert(AlertType.ERROR);
+
+            ecritureAlert.setTitle("Erreur d'écriture");
+            ecritureAlert.setHeaderText(e.getMessage());
+            ecritureAlert.initOwner(this.fenetrePrincipale);
+            ecritureAlert.initModality(Modality.WINDOW_MODAL);
+            ecritureAlert.showAndWait();
+        }
     }
 }

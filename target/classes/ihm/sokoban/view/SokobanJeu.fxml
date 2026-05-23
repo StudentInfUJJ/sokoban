@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="main-game-pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ihm.sokoban.view.SokobanAppController">
+   
+   <stylesheets>
+       <URL value="@styles.css" />
+   </stylesheets>
+   
+   <center>
+      <BorderPane styleClass="background-overlay" BorderPane.alignment="CENTER">
+         <top>
+      <VBox BorderPane.alignment="CENTER">
+         <children>
+            <MenuBar>
+              <menus>
+                <Menu mnemonicParsing="false" text="Fichier">
+                  <items>
+                        <MenuItem mnemonicParsing="false" onAction="#setJeuTutos" text="Refaire Tutoriel" />
+                        <MenuItem mnemonicParsing="false" onAction="#setJeuSokoban" text="Niveaux Normaux" />
+                        <MenuItem fx:id="setAutoProgression" mnemonicParsing="false" onAction="#actionAutoProgOnOff" text="Auto Progression (OFF)" />
+                        <SeparatorMenuItem mnemonicParsing="false" />
+                    <MenuItem mnemonicParsing="false" onAction="#actionCharger" text="Charger" />
+                        <MenuItem mnemonicParsing="false" onAction="#actionQuitter" text="Quitter" />
+                  </items>
+                </Menu>
+                <Menu mnemonicParsing="false" text="Jeu">
+                  <items>
+                    <MenuItem mnemonicParsing="false" onAction="#actionUndo" text="Annuler (Z)" />
+                        <MenuItem mnemonicParsing="false" onAction="#actionRecommencer" text="Recommencer" />
+                        <MenuItem mnemonicParsing="false" onAction="#actionNivSuivant" text="Suivant →" />
+                        <MenuItem mnemonicParsing="false" onAction="#actionNivPrecedent" text="← Précédent" />
+                  </items>
+                </Menu>
+                  <Menu fx:id="choixNiveaux" mnemonicParsing="false" text="Niveaux" />
+                <Menu mnemonicParsing="false" text="?">
+                  <items>
+                    <MenuItem mnemonicParsing="false" onAction="#actionAPropos" text="À Propos" />
+                        <MenuItem mnemonicParsing="false" onAction="#actionAide" text="Aide" />
+                  </items>
+                </Menu>
+              </menus>
+            </MenuBar>
+            
+            <HBox alignment="CENTER" style="-fx-padding: 25;">
+               <children>
+                  <HBox alignment="CENTER" spacing="40.0" styleClass="score-container" style="-fx-padding: 15 50;">
+                     <children>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="score-box" style="-fx-padding: 10 25;">
+                           <children>
+                              <Label styleClass="score-title" text="NIVEAU" />
+                              <Label fx:id="niveau" styleClass="score-value" text="0" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="score-box" style="-fx-padding: 10 25;">
+                           <children>
+                              <Label styleClass="score-title" text="BLOCS OK" />
+                              <Label fx:id="blocsOk" styleClass="score-value" text="0" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="score-box" style="-fx-padding: 10 25;">
+                           <children>
+                              <Label styleClass="score-title" text="MOUVEMENTS" />
+                              <Label fx:id="mouvements" styleClass="score-value" text="0" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="score-box" style="-fx-padding: 10 25;">
+                           <children>
+                              <Label styleClass="score-title" text="POUSSÉES" />
+                              <Label fx:id="poussees" styleClass="score-value" text="0" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </top>
+   
+   <center>
+      <StackPane style="-fx-padding: 10;" BorderPane.alignment="CENTER">
+         <children>
+            <StackPane maxHeight="-Infinity" maxWidth="-Infinity" styleClass="game-board-container">
+               <children>
+                  <GridPane fx:id="zoneJeu" alignment="CENTER" />
+               </children>
+            </StackPane>
+         </children>
+      </StackPane>
+   </center>
+   
+   <bottom>
+      <HBox alignment="CENTER" spacing="30.0" style="-fx-padding: 30;" BorderPane.alignment="CENTER">
+         <children>
+            <Button fx:id="nivPrecedent" mnemonicParsing="false" onAction="#actionNivPrecedent" styleClass="game-button" text="← Précédent (P)" />
+            <Button fx:id="recommencer" mnemonicParsing="false" onAction="#actionRecommencer" styleClass="game-button, game-button-secondary" text="↻ Recommencer (R)" />
+            <Button fx:id="nivSuivant" mnemonicParsing="false" onAction="#actionNivSuivant" styleClass="game-button" text="Suivant → (N)" />
+         </children>
+      </HBox>
+   </bottom>
+      </BorderPane>
+   </center>
+</BorderPane>

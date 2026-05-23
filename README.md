@@ -1,2 +1,0 @@
-# sokoban
-le jeu sokoban 

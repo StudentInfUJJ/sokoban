@@ -38,7 +38,6 @@ public class SokobanApp extends Application {
         loadSokobanJeu(scene);
 
         primaryStage.show();
-
     }
 
     private void loadSokobanJeu(Scene scene) {
@@ -66,6 +65,12 @@ public class SokobanApp extends Application {
                     event.consume();
                 } else {
                     switch (event.getCode()) {
+                        case A:
+                            ctrl.mainMusicStop();
+                            break;
+                        case T:
+                            ctrl.mainMusicStart();
+                            break;
                         case UP:
                         case Z:
                             ctrl.executerDeplacement(Direction.HAUT);
@@ -96,8 +101,10 @@ public class SokobanApp extends Application {
                             break;
                         case C:
                             ctrl.actionCharger();
+                            break;
                         case U:
                             ctrl.actionUndo();
+                            break;
                         default:
                             break;
                     }
